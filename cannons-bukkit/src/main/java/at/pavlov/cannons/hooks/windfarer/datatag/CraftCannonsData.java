@@ -5,7 +5,6 @@ import at.pavlov.cannons.Enum.BreakCause;
 import at.pavlov.cannons.cannon.Cannon;
 import at.pavlov.cannons.cannon.CannonDesign;
 import at.pavlov.cannons.cannon.CannonManager;
-import at.pavlov.cannons.hooks.movecraft.type.CannonCheck;
 import at.pavlov.cannons.hooks.windfarer.DataTagKeys;
 import at.pavlov.cannons.hooks.windfarer.WindfarerUtils;
 import at.pavlov.cannons.hooks.windfarer.properties.CannonCraftTypeProperties;
