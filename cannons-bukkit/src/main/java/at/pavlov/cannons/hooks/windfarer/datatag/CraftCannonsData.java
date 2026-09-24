@@ -2,6 +2,7 @@ package at.pavlov.cannons.hooks.windfarer.datatag;
 
 import at.pavlov.cannons.Cannons;
 import at.pavlov.cannons.Enum.BreakCause;
+import at.pavlov.cannons.Enum.CannonRotation;
 import at.pavlov.cannons.cannon.Cannon;
 import at.pavlov.cannons.cannon.CannonDesign;
 import at.pavlov.cannons.cannon.CannonManager;
@@ -10,6 +11,7 @@ import at.pavlov.cannons.hooks.windfarer.WindfarerUtils;
 import at.pavlov.cannons.hooks.windfarer.properties.CannonCraftTypeProperties;
 import at.pavlov.cannons.hooks.windfarer.properties.CannonTypeConstraint;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
@@ -19,6 +21,7 @@ import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -167,5 +170,24 @@ public class CraftCannonsData {
                     CannonManager.getInstance().removeCannon(cannon.getUID(), false, true, BreakCause.Explosion);
                 }
         );
+    }
+
+    public void processRotation(MovecraftRotation rotation, MovecraftLocation rotationOrigin, @NotNull Craft craft) {
+        final Vector v = rotationOrigin.toBukkit(craft.getWorld()).toVector();
+        final CannonRotation cannonRotation = rotation == MovecraftRotation.CLOCKWISE ? CannonRotation.RIGHT : CannonRotation.LEFT;
+        this.cannons.forEach(cannon -> cannon.rotate(v, cannonRotation));
+    }
+
+    public void processTranslation(int dx, int dy, int dz, UUID oldWorld, @NotNull Craft craft) {
+        UUID newWorldId = craft.getWorld().getUID();
+        final boolean switchedWorld = !newWorldId.equals(oldWorld);
+
+        final Vector delta = new Vector(dy, dy, dz);
+        this.cannons.forEach(cannon -> {
+            cannon.move(delta);
+            if (switchedWorld) {
+                cannon.setWorld(newWorldId);
+            }
+        });
     }
 }
