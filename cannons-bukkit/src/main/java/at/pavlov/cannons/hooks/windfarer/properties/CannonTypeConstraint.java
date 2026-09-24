@@ -21,6 +21,10 @@ public record CannonTypeConstraint(
         Optional<Double> max
 ) implements ConfigurationSerializable {
 
+    public CannonTypeConstraint(CannonTypeConstraint toCopy) {
+        this(new ArrayList(toCopy.cannonTypes()), toCopy.numericMin, Optional.ofNullable(toCopy.min().get()), toCopy.numericMax, Optional.ofNullable(toCopy.max().get()));
+    }
+
     /**
      *
      * @return Empty if no error, otherwise return the error
