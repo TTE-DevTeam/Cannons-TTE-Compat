@@ -37,7 +37,8 @@ public class CannonDetectionTask implements Supplier<Effect> {
         final long timeTaken = System.currentTimeMillis() - startTime;
         Cannons.getPlugin().getLogger().info("Successfully detected <" + cannonRootLocations.size() + "> aboard Craft <" + craft.getUUID().toString() + "> in " + timeTaken + "ms !");
 
-        return Effect.NONE;
+        // We dont have a effect that we will run, so return null!
+        return null;
     }
 
 }

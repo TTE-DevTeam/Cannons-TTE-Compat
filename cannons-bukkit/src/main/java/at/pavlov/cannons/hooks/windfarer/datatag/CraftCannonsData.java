@@ -1,11 +1,18 @@
 package at.pavlov.cannons.hooks.windfarer.datatag;
 
+import at.pavlov.cannons.Cannons;
 import at.pavlov.cannons.cannon.Cannon;
+import at.pavlov.cannons.cannon.CannonDesign;
 import at.pavlov.cannons.cannon.CannonManager;
+import at.pavlov.cannons.hooks.movecraft.type.CannonCheck;
 import at.pavlov.cannons.hooks.windfarer.DataTagKeys;
+import at.pavlov.cannons.hooks.windfarer.WindfarerUtils;
+import at.pavlov.cannons.hooks.windfarer.properties.CannonCraftTypeProperties;
+import at.pavlov.cannons.hooks.windfarer.properties.CannonTypeConstraint;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.MathUtils;
@@ -14,8 +21,9 @@ import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class CraftCannonsData {
 
@@ -56,4 +64,97 @@ public class CraftCannonsData {
         }
         return Result.fail();
     }
+
+    public boolean validateCannons(Consumer<String> setFailMessage, Craft craft) {
+        // Validate all cannons now
+        // No cannons? No problem, behave like Movecraft Cannons, which doesnt validate min here!
+        if (this.cannons.isEmpty()) {
+            return true;
+        }
+
+        final TypeSafeCraftType craftType = WindfarerUtils.getCraftProperties(craft);
+
+        if (!checkCannonConstraints(setFailMessage, craftType, craft)) {
+            return false;
+        }
+        if (!checkCannonMass(setFailMessage, craftType)) {
+            return false;
+        }
+
+        // Finally, tell the cannons they are on a ship(?)
+        if (craftType.get(CannonCraftTypeProperties.USE_SHIP_ANGLES)) {
+            this.cannons.forEach(c -> c.setOnShip(true));
+        }
+
+        return true;
+    }
+
+    private boolean checkCannonMass(Consumer<String> setFailMessage, TypeSafeCraftType craftType) {
+        int mass = 0;
+        final List<String> excludedTypes = craftType.get(CannonCraftTypeProperties.EXCLUDE_FROM_MASS);
+        for (Cannon cannon : this.cannons) {
+            CannonDesign design = cannon.getCannonDesign();
+
+            if (!excludedTypes.contains(design.getDesignID())) {
+                mass += design.getMassOfCannon();
+            }
+        }
+
+        Cannons.getPlugin().logDebug("MassCount " + mass);
+
+        if (craftType.hasInSelfOrAnyParent(CannonCraftTypeProperties.MAX_CANNON_MASS, true)) {
+            final int maxMass = craftType.get(CannonCraftTypeProperties.MAX_CANNON_MASS);
+            if (maxMass < mass) {
+                setFailMessage.accept(
+                        String.format(
+                                "Detection Failed! Too much cannon mass on board! %d > %d", mass, maxMass
+                        )
+                );
+                return false;
+            }
+        }
+
+        if (craftType.hasInSelfOrAnyParent(CannonCraftTypeProperties.MIN_CANNON_MASS, true)) {
+            final int minMass = craftType.get(CannonCraftTypeProperties.MIN_CANNON_MASS);
+            if (minMass > mass) {
+                setFailMessage.accept(
+                        String.format(
+                                "Detection Failed! Not enough cannon mass on board! %d < %d", mass, minMass
+                        )
+                );
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean checkCannonConstraints(Consumer<String> setFailMessage, TypeSafeCraftType craftType, Craft craft) {
+        final List<CannonTypeConstraint> constraints = craftType.get(CannonCraftTypeProperties.CANNON_TYPE_CONSTRAINTS);
+        if (constraints.isEmpty())
+            return true;
+
+        Map<String, Integer> cannonCount = new HashMap<>();
+        for (Cannon cannon : cannons) {
+            String design = cannon.getCannonDesign().getDesignID();
+            cannonCount.compute(design, (key, value) -> (value == null) ? 1 : value + 1);
+        }
+
+        for (var entry : cannonCount.entrySet()) {
+            Cannons.getPlugin().logDebug("Cannon found: " + entry.getKey() + " | " + entry.getValue());
+        }
+
+        for (CannonTypeConstraint check : constraints) {
+            Optional<String> result = check.check(craft, cannonCount);
+
+            if (result.isEmpty()) continue;
+
+            String error = result.get();
+            setFailMessage.accept("Detection Failed! " + error);
+            return false;
+        }
+
+        return true;
+    }
+
 }
