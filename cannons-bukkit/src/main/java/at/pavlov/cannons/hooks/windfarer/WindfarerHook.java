@@ -2,6 +2,7 @@ package at.pavlov.cannons.hooks.windfarer;
 
 import at.pavlov.cannons.Cannons;
 import at.pavlov.cannons.hooks.BukkitHook;
+import at.pavlov.cannons.hooks.windfarer.listener.*;
 import at.pavlov.internal.Hook;
 import net.countercraft.movecraft.Movecraft;
 import org.bukkit.ChatColor;
@@ -35,6 +36,11 @@ public class WindfarerHook extends BukkitHook<Movecraft> {
 
         hook = windfarer;
 
+        pluginManager.registerEvents(new CraftDetectListener(), plugin);
+        pluginManager.registerEvents(new PostMovementListener(), plugin);
+        pluginManager.registerEvents(new RegisterDetectionStepsListener(), plugin);
+        pluginManager.registerEvents(new ReleaseListener(), plugin);
+        pluginManager.registerEvents(new SinkListener(), plugin);
 
         plugin.logInfo(ChatColor.GREEN + enabledMessage());
     }
