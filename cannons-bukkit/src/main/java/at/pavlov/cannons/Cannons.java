@@ -19,6 +19,7 @@ import at.pavlov.cannons.hooks.movecraft.MovecraftHook;
 import at.pavlov.cannons.hooks.movecraft.type.properties.CannonProperties;
 import at.pavlov.cannons.hooks.movecraftcombat.MovecraftCombatHook;
 import at.pavlov.cannons.hooks.papi.PlaceholderAPIHook;
+import at.pavlov.cannons.hooks.windfarer.WindfarerHook;
 import at.pavlov.cannons.listener.BlockListener;
 import at.pavlov.cannons.listener.EntityListener;
 import at.pavlov.cannons.listener.PlayerListener;
@@ -275,6 +276,10 @@ public final class Cannons extends JavaPlugin {
         logDebug("Loading MovecraftCombatHook");
         MovecraftCombatHook movecraftCombatHook = new MovecraftCombatHook(this);
         hookManager.registerHook(movecraftCombatHook);
+
+        logDebug("Loading WindfarerHook");
+        WindfarerHook windfarerHook = new WindfarerHook(this);
+        hookManager.registerHook(windfarerHook);
 
         logDebug("Loading PlaceholderAPIHook");
         PlaceholderAPIHook placeholderAPIHook = new PlaceholderAPIHook(this);
