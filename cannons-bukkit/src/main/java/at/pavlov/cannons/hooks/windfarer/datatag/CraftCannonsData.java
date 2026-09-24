@@ -1,6 +1,7 @@
 package at.pavlov.cannons.hooks.windfarer.datatag;
 
 import at.pavlov.cannons.Cannons;
+import at.pavlov.cannons.Enum.BreakCause;
 import at.pavlov.cannons.cannon.Cannon;
 import at.pavlov.cannons.cannon.CannonDesign;
 import at.pavlov.cannons.cannon.CannonManager;
@@ -157,4 +158,15 @@ public class CraftCannonsData {
         return true;
     }
 
+    public void onRelease() {
+        this.cannons.forEach(c -> c.setOnShip(false));
+    }
+
+    public void onSunk() {
+        this.cannons.forEach(
+                cannon -> {
+                    CannonManager.getInstance().removeCannon(cannon.getUID(), false, true, BreakCause.Explosion);
+                }
+        );
+    }
 }
