@@ -20,6 +20,7 @@ import at.pavlov.cannons.hooks.movecraft.type.properties.CannonProperties;
 import at.pavlov.cannons.hooks.movecraftcombat.MovecraftCombatHook;
 import at.pavlov.cannons.hooks.papi.PlaceholderAPIHook;
 import at.pavlov.cannons.hooks.windfarer.WindfarerHook;
+import at.pavlov.cannons.hooks.windfarer.properties.CannonCraftTypeProperties;
 import at.pavlov.cannons.listener.BlockListener;
 import at.pavlov.cannons.listener.EntityListener;
 import at.pavlov.cannons.listener.PlayerListener;
@@ -120,19 +121,33 @@ public final class Cannons extends JavaPlugin {
 
         initUpdater();
 
-        if (config.isMovecraftEnabled()) {
+        loadMovecraftAndWindfarer();
+
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            folia = true;
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void loadMovecraftAndWindfarer() {
+        boolean windfarerLoaded = false;
+        if (config.isWindfarerEnabled()) {
+            try {
+                Class.forName("net.countercraft.movecraft.craft.type.CraftProperties");
+                CannonCraftTypeProperties.register();
+                windfarerLoaded = true;
+            } catch(Exception ignored) {
+            }
+        }
+        // TTE: Windfarer provides Movecraft, but has different API! If Windfarer is used, do not init Movecraft!
+        if (config.isMovecraftEnabled() && !windfarerLoaded) {
             try {
                 Class.forName("net.countercraft.movecraft.craft.type.property.Property");
                 CannonProperties.register();
             } catch (Exception ignored) {
             }
 
-        }
-
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            folia = true;
-        } catch (Exception ignored) {
         }
     }
 
