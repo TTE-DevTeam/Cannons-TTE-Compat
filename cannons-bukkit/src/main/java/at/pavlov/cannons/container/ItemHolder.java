@@ -1,7 +1,6 @@
 package at.pavlov.cannons.container;
 
-import at.pavlov.cannons.multiversion.VersionHandler;
-import at.pavlov.cannons.utils.ParseUtils;
+import at.pavlov.cannons.multiversion.ItemNameResolver;
 import at.pavlov.cannons.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,16 +40,8 @@ public class ItemHolder {
             return;
         }
 
+        displayName = ItemNameResolver.getFriendlyName(item);
         ItemMeta meta = item.getItemMeta();
-        if (meta.hasDisplayName() && meta.getDisplayName() != null) {
-            this.displayName = meta.getDisplayName();
-        } else if (VersionHandler.isGreaterThan1_20_5() && meta.hasItemName()) {
-            this.displayName = meta.getItemName();
-        } else if (!meta.hasDisplayName()) {
-            this.displayName = getFriendlyName(item);
-        } else {
-            this.displayName = "";
-        }
 
         boolean loreExists = meta.hasLore() && meta.getLore() != null;
         this.lore = loreExists ? meta.getLore() : new ArrayList<>();
@@ -184,15 +175,5 @@ public class ItemHolder {
 
     public boolean hasLore() {
         return !this.lore.isEmpty();
-    }
-
-    public static @NotNull String getFriendlyName(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) return "Air";
-
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().getDisplayName();
-        }
-
-        return ParseUtils.normalizeName(itemStack.getType().name());
     }
 }
