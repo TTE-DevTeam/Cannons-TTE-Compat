@@ -43,7 +43,7 @@ public class CannonCraftTypeProperties {
                     (list) -> {
                         List<CannonTypeConstraint> newList = new ArrayList<>(list.size());
                         for (CannonTypeConstraint ctc : list) {
-                            new CannonTypeConstraint(ctc);
+                            newList.add(new CannonTypeConstraint(ctc));
                         }
                         return newList;
                     }
