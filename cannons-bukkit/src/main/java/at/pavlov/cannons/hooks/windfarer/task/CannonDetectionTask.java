@@ -35,7 +35,7 @@ public class CannonDetectionTask implements Supplier<Effect> {
 
         // Print out, how many cannons we have detected
         final long timeTaken = System.currentTimeMillis() - startTime;
-        Cannons.getPlugin().getLogger().info("Successfully detected <" + cannonRootLocations.size() + "> aboard Craft <" + craft.getUUID().toString() + "> in " + timeTaken + "ms !");
+        Cannons.getPlugin().logDebug("Successfully detected <" + cannonRootLocations.size() + "> aboard Craft <" + craft.getUUID().toString() + "> in " + timeTaken + "ms !");
 
         // We dont have a effect that we will run, so return null!
         return null;
