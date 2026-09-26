@@ -155,8 +155,8 @@
         <!-- Windfarer Modrinth Release -->
         <dependency>
             <groupId>maven.modrinth</groupId>
-            <artifactId>FDPk3UZI</artifactId>
-            <version>tYG3259A</version> <!-- 8.12.5-TTE -->
+            <artifactId>windfarer-plugin</artifactId>
+            <version>8.12.5-TTE</version>
             <scope>provided</scope>
         </dependency>
 
