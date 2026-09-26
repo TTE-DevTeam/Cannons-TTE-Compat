@@ -56,11 +56,14 @@ public class CraftCannonsData {
         }
 
         // Check for cannon, if there is one, add it to ourselves
-        final Cannon atLocation = CannonManager.getInstance().getCannon(movecraftLocation.toBukkit(craft.getWorld()), playerCraft.getPilot().getUniqueId());
-        if (atLocation != null) {
-            if (cannons.add(atLocation)) {
-                for (Location cannonBlock : atLocation.getCannonDesign().getAllCannonBlocks(atLocation)) {
-                    locationBitMap.add(MathUtils.bukkit2MovecraftLoc(cannonBlock));
+        // TODO: is there a more efficient way than that? Issue is: If there are many cannons, this could take very very long as we have to do it for every location of a craft!
+        final Set<Cannon> atLocation = CannonManager.getCannonsByLocations(List.of(movecraftLocation.toBukkit(craft.getWorld())));
+        if (atLocation != null && !atLocation.isEmpty()) {
+            if (cannons.addAll(atLocation)) {
+                for (Cannon cannon : atLocation) {
+                    for (Location cannonBlock : cannon.getCannonDesign().getAllCannonBlocks(cannon)) {
+                        locationBitMap.add(MathUtils.bukkit2MovecraftLoc(cannonBlock));
+                    }
                 }
                 return Result.succeed();
             }
