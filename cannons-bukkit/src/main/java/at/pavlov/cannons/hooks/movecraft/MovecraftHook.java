@@ -29,7 +29,7 @@ public class MovecraftHook extends BukkitHook<Movecraft> {
         Plugin windfarerPlugin = pluginManager.getPlugin("Windfarer");
         // TTE: Windfarer provides movecraft, thus, if Windfarer is found as well, the movecraft hook must not be enabled!
         if (windfarerPlugin != null && windfarerPlugin.isEnabled()) {
-            plugin.logDebug("Disablign Movecraft Hook in favor of Windfarer Hook! Movecraft hook is not usable with Windfarer!");
+            plugin.logDebug("Disabling Movecraft Hook in favor of Windfarer Hook! Movecraft hook is not usable with Windfarer!");
             return;
         }
         if (movecraftPlugin == null || !movecraftPlugin.isEnabled()) {
