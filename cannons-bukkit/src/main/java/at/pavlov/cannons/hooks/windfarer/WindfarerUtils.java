@@ -4,30 +4,36 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.CraftProperties;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 
 // Due to Windfarer and Movecraft sharing partly the same classes, some ugly hacks are sadly necessary
 public class WindfarerUtils {
 
-    private static final Method m_getCraftProperties;
+    private static final MethodHandle m_getCraftProperties;
 
     static {
         try {
-            m_getCraftProperties = Craft.class.getDeclaredMethod("getCraftProperties");
-        } catch (NoSuchMethodException e) {
+            MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(
+                    Craft.class,
+                    MethodHandles.lookup()
+            );
+
+            m_getCraftProperties = lookup.findVirtual(
+                    Craft.class,
+                    "getCraftProperties",
+                    MethodType.methodType(CraftProperties.class)
+            );
+        } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static @Nullable CraftProperties getCraftProperties(final Craft craft) {
         try {
-            Object result = m_getCraftProperties.invoke(craft);
-            if (result instanceof CraftProperties craftProperties) {
-                return craftProperties;
-            } else {
-                return null;
-            }
-        } catch(Exception exception) {
+            return (CraftProperties) m_getCraftProperties.invoke(craft);
+        } catch (Throwable throwable) {
             return null;
         }
     }
