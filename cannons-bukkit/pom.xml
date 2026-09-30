@@ -159,6 +159,13 @@
             <version>8.13.0-TTE</version>
             <scope>provided</scope>
         </dependency>
+        <!-- RoaringBitmap for merging cannons to crafts -->
+        <dependency>
+            <groupId>org.roaringbitmap</groupId>
+            <artifactId>RoaringBitmap</artifactId>
+            <version>1.0.6</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Testing dependencies  -->
         <dependency>
