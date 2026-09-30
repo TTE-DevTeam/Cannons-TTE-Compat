@@ -19,8 +19,11 @@ import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
+import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,7 +60,13 @@ public class CraftCannonsData {
 
         // Check for cannon, if there is one, add it to ourselves
         // TODO: is there a more efficient way than that? Issue is: If there are many cannons, this could take very very long as we have to do it for every location of a craft!
-        final Set<Cannon> atLocation = CannonManager.getCannonsByLocations(List.of(movecraftLocation.toBukkit(craft.getWorld())));
+        // Ugly, hacky workaround, otherwise movecraft / windfarer jump attacks our face
+        final World bukkitWorld = Bukkit.getWorld(movecraftWorld.getWorldUUID());
+        // This should never happen but caution is the mother of the porcellain box or sth
+        if (bukkitWorld == null) {
+            return Result.fail();
+        }
+        final Set<Cannon> atLocation = CannonManager.getCannonsByLocations(List.of(movecraftLocation.toBukkit(bukkitWorld)));
         if (atLocation != null && !atLocation.isEmpty()) {
             if (cannons.addAll(atLocation)) {
                 for (Cannon cannon : atLocation) {
@@ -74,7 +83,7 @@ public class CraftCannonsData {
     public boolean validateCannons(Consumer<String> setFailMessage, Craft craft) {
         // Validate all cannons now
         // No cannons? No problem, behave like Movecraft Cannons, which doesnt validate min here!
-        if (this.cannons.isEmpty()) {
+        if (this.cannons.isEmpty() || this.locationBitMap.isEmpty()) {
             return true;
         }
 
@@ -90,6 +99,18 @@ public class CraftCannonsData {
         // Finally, tell the cannons they are on a ship(?)
         if (craftType.get(CannonCraftTypeProperties.USE_SHIP_ANGLES)) {
             this.cannons.forEach(c -> c.setOnShip(true));
+        }
+
+        // Finally, ensure all cannons are aboard
+        final HitBox craftHitBox = craft.getHitBox();
+        if (craftHitBox instanceof MutableHitBox mutableHitBox) {
+            mutableHitBox.addAll(this.locationBitMap);
+            craft.setOrigBlockCount(mutableHitBox.size());
+        } else {
+            BitmapHitBox newHitBox = new BitmapHitBox(craftHitBox);
+            newHitBox.addAll(this.locationBitMap);
+            craft.setOrigBlockCount(newHitBox.size());
+            craft.setHitBox(newHitBox);
         }
 
         return true;
