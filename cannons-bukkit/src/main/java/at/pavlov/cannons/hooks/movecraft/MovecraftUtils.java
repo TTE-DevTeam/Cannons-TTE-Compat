@@ -1,5 +1,6 @@
 package at.pavlov.cannons.hooks.movecraft;
 
+import at.pavlov.cannons.Cannons;
 import at.pavlov.cannons.cannon.Cannon;
 import at.pavlov.cannons.cannon.CannonManager;
 import lombok.AccessLevel;
@@ -8,8 +9,11 @@ import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.SubCraft;
+import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
+import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.Pair;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -22,13 +26,19 @@ import static net.countercraft.movecraft.craft.type.TypeData.NUMERIC_PREFIX;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MovecraftUtils {
 
-    public static Set<Cannon> getCannons(Craft craft) {
+    private static final CraftDataTagKey<Set<Cannon>> CRAFT_CANNONS = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Cannons.getPlugin(), "movecraft_cannons"), MovecraftUtils::getCannonsInternally);
+
+    private static Set<Cannon> getCannonsInternally(Craft craft) {
         List<Location> shipLocations = new ArrayList<>();
         for (MovecraftLocation loc : craft.getHitBox()) {
             shipLocations.add(loc.toBukkit(craft.getWorld()));
         }
 
         return CannonManager.getCannonsByLocations(shipLocations);
+    }
+
+    public static Set<Cannon> getCannons(Craft craft) {
+        return craft.getDataTag(CRAFT_CANNONS);
     }
 
     /**
