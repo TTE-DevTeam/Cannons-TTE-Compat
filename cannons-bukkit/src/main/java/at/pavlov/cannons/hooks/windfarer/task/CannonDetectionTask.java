@@ -31,7 +31,6 @@ public class CannonDetectionTask implements Supplier<Effect> {
                 this.craft,
                 cannonsData::checkAndAddCannon
         );
-        cannonsData.postDetection();
 
         // Print out, how many cannons we have detected
         final long timeTaken = System.currentTimeMillis() - startTime;
