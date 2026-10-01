@@ -35,25 +35,24 @@ public class CraftCannonsData {
 
     // Search happens multithreaded, thus the concurrent set
     protected Set<Cannon> cannons = ConcurrentHashMap.newKeySet();
-    protected MutableHitBox locationBitMap = new BitmapHitBox();
+    // Attention: This field is null after validation has finished!
+    // TODO: Perhaps switch to FastUtil if this has a threadsafe version?
+    // TODO: If possible, switch back to a 3d bitmap as that consumes way less memory
+    protected Set<MovecraftLocation> cannonLocations = ConcurrentHashMap.newKeySet();
 
     public static @NotNull CraftCannonsData of(Craft craft) {
         return craft.getDataTag(DataTagKeys.CANNONS);
     }
 
-    // Not the prettiest way, but saves memory
-    public void postDetection() {
-        this.locationBitMap = null;
-    }
-
     // Attempts to register a cannon at that location, if there is one
+    // Warning: This gets called from multiple worker threads!
     public @NotNull Result checkAndAddCannon(@NotNull MovecraftLocation movecraftLocation, @NotNull MovecraftWorld movecraftWorld, @NotNull Craft craft) {
         if (!(craft instanceof PlayerCraft playerCraft)) {
             return Result.fail();
         }
 
         // Avoid checking blocks of known cannons
-        if (!cannons.isEmpty() && locationBitMap.inBounds(movecraftLocation) && locationBitMap.contains(movecraftLocation)) {
+        if (!cannons.isEmpty() && cannonLocations.contains(movecraftLocation)) {
             // We already know a cannon there!
             return Result.fail();
         }
@@ -71,7 +70,7 @@ public class CraftCannonsData {
             if (cannons.addAll(atLocation)) {
                 for (Cannon cannon : atLocation) {
                     for (Location cannonBlock : cannon.getCannonDesign().getAllCannonBlocks(cannon)) {
-                        locationBitMap.add(MathUtils.bukkit2MovecraftLoc(cannonBlock));
+                        cannonLocations.add(MathUtils.bukkit2MovecraftLoc(cannonBlock));
                     }
                 }
                 return Result.succeed();
@@ -83,7 +82,7 @@ public class CraftCannonsData {
     public boolean validateCannons(Consumer<String> setFailMessage, Craft craft) {
         // Validate all cannons now
         // No cannons? No problem, behave like Movecraft Cannons, which doesnt validate min here!
-        if (this.cannons.isEmpty() || this.locationBitMap.isEmpty()) {
+        if (this.cannons.isEmpty() || this.cannonLocations.isEmpty()) {
             return true;
         }
 
@@ -104,14 +103,16 @@ public class CraftCannonsData {
         // Finally, ensure all cannons are aboard
         final HitBox craftHitBox = craft.getHitBox();
         if (craftHitBox instanceof MutableHitBox mutableHitBox) {
-            mutableHitBox.addAll(this.locationBitMap);
+            mutableHitBox.addAll(this.cannonLocations);
             craft.setOrigBlockCount(mutableHitBox.size());
         } else {
             BitmapHitBox newHitBox = new BitmapHitBox(craftHitBox);
-            newHitBox.addAll(this.locationBitMap);
+            newHitBox.addAll(this.cannonLocations);
             craft.setOrigBlockCount(newHitBox.size());
             craft.setHitBox(newHitBox);
         }
+
+        this.cannonLocations = null;
 
         return true;
     }
