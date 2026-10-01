@@ -38,6 +38,7 @@ public class MovecraftUtils {
     }
 
     public static Set<Cannon> getCannons(Craft craft) {
+        // TODO: Might be worth it adding a "lifetime" to the cached value and to re-scan for new cannons every now and then
         return craft.getDataTag(CRAFT_CANNONS);
     }
 
