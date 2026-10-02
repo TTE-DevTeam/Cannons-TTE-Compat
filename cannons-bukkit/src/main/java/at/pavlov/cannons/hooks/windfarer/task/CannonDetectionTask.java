@@ -27,6 +27,8 @@ public class CannonDetectionTask implements Supplier<Effect> {
 
         final long startTime = System.currentTimeMillis();
         final CraftCannonsData cannonsData = CraftCannonsData.of(this.craft);
+        // TODO: New approach: Do it "backwards" => Go through all cannons and check them against the hitbox! Not the the current "Go through every hitbox location and check if there is a cannon"
+        // Cannons maintainer refuses to change the cannon cache to something faster like a Map<ChunkPos, Set<Cannon>> cache which would reduce lookup times in general greatly
         final Set<MovecraftLocation> cannonRootLocations = BlockCollectionUtil.getLocations(
                 this.craft,
                 cannonsData::checkAndAddCannon
