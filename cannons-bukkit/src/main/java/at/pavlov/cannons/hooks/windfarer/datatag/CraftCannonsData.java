@@ -15,8 +15,6 @@ import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
-import net.countercraft.movecraft.processing.MovecraftWorld;
-import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -38,7 +36,7 @@ public class CraftCannonsData {
     // Attention: This field is null after validation has finished!
     // TODO: Perhaps switch to FastUtil if this has a threadsafe version?
     // TODO: If possible, switch back to a 3d bitmap as that consumes way less memory
-    protected Set<MovecraftLocation> cannonLocations = ConcurrentHashMap.newKeySet();
+    protected BitmapHitBox cannonBlocks = new BitmapHitBox();
 
     public static @NotNull CraftCannonsData of(Craft craft) {
         return craft.getDataTag(DataTagKeys.CANNONS);
@@ -46,43 +44,60 @@ public class CraftCannonsData {
 
     // Attempts to register a cannon at that location, if there is one
     // Warning: This gets called from multiple worker threads!
-    public @NotNull Result checkAndAddCannon(@NotNull MovecraftLocation movecraftLocation, @NotNull MovecraftWorld movecraftWorld, @NotNull Craft craft) {
+    public boolean findCannonsAboardCraft(@NotNull Craft craft) {
         if (!(craft instanceof PlayerCraft playerCraft)) {
-            return Result.fail();
-        }
-
-        // Avoid checking blocks of known cannons
-        if (!cannons.isEmpty() && cannonLocations.contains(movecraftLocation)) {
-            // We already know a cannon there!
-            return Result.fail();
+            return false;
         }
 
         // Check for cannon, if there is one, add it to ourselves
-        // TODO: is there a more efficient way than that? Issue is: If there are many cannons, this could take very very long as we have to do it for every location of a craft!
-        // Ugly, hacky workaround, otherwise movecraft / windfarer jump attacks our face
-        final World bukkitWorld = Bukkit.getWorld(movecraftWorld.getWorldUUID());
+        final UUID worldUID = craft.getMovecraftWorld().getWorldUUID();
+        final World bukkitWorld = Bukkit.getWorld(worldUID);
         // This should never happen but caution is the mother of the porcellain box or sth
         if (bukkitWorld == null) {
-            return Result.fail();
+            return false;
         }
-        final Set<Cannon> atLocation = CannonManager.getCannonsByLocations(List.of(movecraftLocation.toBukkit(bukkitWorld)));
-        if (atLocation != null && !atLocation.isEmpty()) {
-            if (cannons.addAll(atLocation)) {
-                for (Cannon cannon : atLocation) {
-                    for (Location cannonBlock : cannon.getCannonDesign().getAllCannonBlocks(cannon)) {
-                        cannonLocations.add(MathUtils.bukkit2MovecraftLoc(cannonBlock));
-                    }
+
+        final BitmapHitBox hitBox = new BitmapHitBox(craft.getHitBox());
+        for (Cannon cannon : CannonManager.getCannonList().values()) {
+            // Not even in the same world
+            if (!worldUID.equals(cannon.getWorld())) {
+                continue;
+            }
+            // Now check for in HitBox
+            boolean added = false;
+
+            List<MovecraftLocation> cannonBlocksTmp = new ArrayList<>(cannon.getCannonDesign().getAllCannonBlocks(cannon).size());
+            for (Location cannonBlock : cannon.getCannonDesign().getAllCannonBlocks(cannon)) {
+                MovecraftLocation movecraftLocation = MathUtils.bukkit2MovecraftLoc(cannonBlock);
+                cannonBlocksTmp.add(movecraftLocation);
+
+                if (added) {
+                    continue;
                 }
-                return Result.succeed();
+
+                if (!hitBox.inBounds(movecraftLocation)) {
+                    continue;
+                }
+                if (!hitBox.contains(movecraftLocation)) {
+                    continue;
+                }
+
+                added = true;
+            }
+
+            if (added) {
+                cannonBlocks.addAll(cannonBlocksTmp);
+                cannons.add(cannon);
             }
         }
-        return Result.fail();
+
+        return cannons.size() > 0;
     }
 
     public boolean validateCannons(Consumer<String> setFailMessage, Craft craft) {
         // Validate all cannons now
         // No cannons? No problem, behave like Movecraft Cannons, which doesnt validate min here!
-        if (this.cannons.isEmpty() || this.cannonLocations.isEmpty()) {
+        if (this.cannons.isEmpty() || this.cannonBlocks.isEmpty()) {
             return true;
         }
 
@@ -103,16 +118,16 @@ public class CraftCannonsData {
         // Finally, ensure all cannons are aboard
         final HitBox craftHitBox = craft.getHitBox();
         if (craftHitBox instanceof MutableHitBox mutableHitBox) {
-            mutableHitBox.addAll(this.cannonLocations);
+            mutableHitBox.addAll(this.cannonBlocks);
             craft.setOrigBlockCount(mutableHitBox.size());
         } else {
             BitmapHitBox newHitBox = new BitmapHitBox(craftHitBox);
-            newHitBox.addAll(this.cannonLocations);
+            newHitBox.addAll(this.cannonBlocks);
             craft.setOrigBlockCount(newHitBox.size());
             craft.setHitBox(newHitBox);
         }
 
-        this.cannonLocations = null;
+        this.cannonBlocks = null;
 
         return true;
     }
@@ -207,12 +222,20 @@ public class CraftCannonsData {
         UUID newWorldId = craft.getWorld().getUID();
         final boolean switchedWorld = !newWorldId.equals(oldWorld);
 
-        final Vector delta = new Vector(dy, dy, dz);
+        final Vector delta = new Vector(dx, dy, dz);
         this.cannons.forEach(cannon -> {
             cannon.move(delta);
             if (switchedWorld) {
                 cannon.setWorld(newWorldId);
             }
         });
+    }
+
+    public Set<Cannon> getCannons() {
+        return new HashSet<>(this.cannons);
+    }
+
+    public int getCannonCount() {
+        return this.cannons.size();
     }
 }
