@@ -11,15 +11,14 @@ import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.SubCraft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Pair;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static net.countercraft.movecraft.craft.type.TypeData.NUMERIC_PREFIX;
 
@@ -29,12 +28,42 @@ public class MovecraftUtils {
     private static final CraftDataTagKey<Set<Cannon>> CRAFT_CANNONS = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Cannons.getPlugin(), "movecraft_cannons"), MovecraftUtils::getCannonsInternally);
 
     private static Set<Cannon> getCannonsInternally(Craft craft) {
-        List<Location> shipLocations = new ArrayList<>();
-        for (MovecraftLocation loc : craft.getHitBox()) {
-            shipLocations.add(loc.toBukkit(craft.getWorld()));
-        }
+        final BitmapHitBox hitBox = new BitmapHitBox(craft.getHitBox());
+        final UUID worldUID = craft.getMovecraftWorld().getWorldUUID();
+        final Set<Cannon> result = new HashSet<>();
+        for (Cannon cannon : CannonManager.getCannonList().values()) {
+            // Not even in the same world
+            if (!worldUID.equals(cannon.getWorld())) {
+                continue;
+            }
+            // Now check for in HitBox
+            boolean added = false;
 
-        return CannonManager.getCannonsByLocations(shipLocations);
+            List<MovecraftLocation> cannonBlocksTmp = new ArrayList<>(cannon.getCannonDesign().getAllCannonBlocks(cannon).size());
+            for (Location cannonBlock : cannon.getCannonDesign().getAllCannonBlocks(cannon)) {
+                MovecraftLocation movecraftLocation = MathUtils.bukkit2MovecraftLoc(cannonBlock);
+                cannonBlocksTmp.add(movecraftLocation);
+
+                if (added) {
+                    continue;
+                }
+
+                if (!hitBox.inBounds(movecraftLocation)) {
+                    continue;
+                }
+                if (!hitBox.contains(movecraftLocation)) {
+                    continue;
+                }
+
+                added = true;
+            }
+
+            if (added) {
+                //cannonBlocks.addAll(cannonBlocksTmp);
+                result.add(cannon);
+            }
+        }
+        return result;
     }
 
     public static Set<Cannon> getCannons(Craft craft) {
